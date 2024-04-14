@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Rounds Tracker</title>
+    <style>
+        .entry {
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .form-section {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .comments-container {
+            max-width: 800px;
+            margin: 20px auto;
+        }
+
+        .small-title {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .dictation-icon {
+            font-size: 24px;
+            cursor: pointer;
+            display: none; /* Hide dictation icons, as native speech input will be used */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-section">
+            <h2>Patient Rounds Information</h2>
+            <form>
+                Patient Name: <input type="text" id="patientName"><br>
+                Room Number: <input type="text" id="roomNumber"><br>
+                <span class="small-title">Home Situation:</span>
+                <textarea id="homeBaseline" placeholder="Lives alone or with someone able-bodied, steps in the home, independent ambulator or uses a cane/walker, wheelchair or in bed, baseline oxygen use/CPAP/BiPAP" x-webkit-speech></textarea><br>
+                <span class="small-title">Subjective:</span>
+                <textarea id="subjective" placeholder="Alert or confused/sleepy, oriented to situation, any anxiety, physical distress. Ask about eating, walking, bowels, and bladder" x-webkit-speech></textarea><br>
+                <span class="small-title">Salient Vitals:</span>
+                <textarea id="salientVitals" x-webkit-speech></textarea><br>
+                <span class="small-title">Physical Exam:</span>
+                <textarea id="physicalExam" placeholder="Low air loss mattress, Foleys, lines, hardware, position in bed or if in bed, ability to sit up for exam, ability to stand if asked, oro/pharynx, heart, lungs, abdomen, feet/heels/pulses" x-webkit-speech></textarea><br>
+                <span class="small-title">Nursing Input:</span>
+                <textarea id="nursingInput" placeholder="Eating okay, moving bowels, confused" x-webkit-speech></textarea><br>
+                <span class="small-title">Suggestions/Early Thoughts:</span>
+                <textarea id="suggestions" x-webkit-speech></textarea><br>
+                <button type="button" onclick="addToTable()">Add Entry</button>
+                <button type="button" onclick="downloadEntries()">Download Entries</button>
+                <button type="button" onclick="sendEmail()">Email Entries</button>
+            </form>
+        </div>
+        <div class="comments-container">
+            <h3>Round Entries:</h3>
+            <div id="entriesContainer"></div>
+        </div>
+    </div>
+    <button type="button" onclick="clearForm()">Clear All</button>
+
+    <script>
+        let entries = [];
+
+        function clearForm() {
+            // Clear input fields
+            document.getElementById('patientName').value = '';
+            document.getElementById('roomNumber').value = '';
+            document.getElementById('homeBaseline').value = '';
+            document.getElementById('subjective').value = '';
+            document.getElementById('salientVitals').value = '';
+            document.getElementById('physicalExam').value = '';
+            document.getElementById('nursingInput').value = '';
+            document.getElementById('suggestions').value = '';
+
+            // Clear entries array and update localStorage
+            entries = [];
+            localStorage.setItem('patientRoundsEntries', JSON.stringify(entries));
+
+            // Re-render the entries to clear them from the display
+            renderEntries();
+        }
+
+
+        const savedEntries = JSON.parse(localStorage.getItem('patientRoundsEntries')) || [];
+        entries = savedEntries;
+        renderEntries();
+
+        function addToTable() {
+            const patientName = document.getElementById('patientName').value;
+            const roomNumber = document.getElementById('roomNumber').value;
+            const homeBaseline = document.getElementById('homeBaseline').value;
+            const subjective = document.getElementById('subjective').value;
+            const salientVitals = document.getElementById('salientVitals').value;
+            const physicalExam = document.getElementById('physicalExam').value;
+            const nursingInput = document.getElementById('nursingInput').value;
+            const suggestions = document.getElementById('suggestions').value;
+
+            const entry = {
+                patientName,
+                roomNumber,
+                homeBaseline,
+                subjective,
+                salientVitals,
+                physicalExam,
+                nursingInput,
+                suggestions
+            };
+
+            entries.unshift(entry);
+            renderEntries();
+            saveEntries();
+
+            document.getElementById('patientName').value = '';
+            document.getElementById('roomNumber').value = '';
+            document.getElementById('homeBaseline').value = '';
+            document.getElementById('subjective').value = '';
+            document.getElementById('salientVitals').value = '';
+            document.getElementById('physicalExam').value = '';
+            document.getElementById('nursingInput').value = '';
+            document.getElementById('suggestions').value = '';
+        }
+
+        function renderEntries() {
+            const entriesContainer = document.getElementById('entriesContainer');
+            entriesContainer.innerHTML = '';
+
+            entries.forEach((entry, index) => {
+                const entryDiv = document.createElement('div');
+                entryDiv.classList.add('entry');
+
+                const entryContent = `
+                                        <h4>Entry ${index + 1}</h4>
+                                        <p>Patient Name: ${entry.patientName}</p>
+                                        <p>Room Number: ${entry.roomNumber}</p>
+                                        <p>Home Situation: ${entry.homeBaseline}</p>
+                                        <p>Subjective: ${entry.subjective}</p>
+                                        <p>Salient Vitals: ${entry.salientVitals}</p>
+                                        <p>Physical Exam: ${entry.physicalExam}</p>
+                                        <p>Nursing Input: ${entry.nursingInput}</p>
+                                        <p>Suggestions/Early Thoughts: ${entry.suggestions}</p>
+                                    `;
+                entryDiv.innerHTML = entryContent;
+                entriesContainer.appendChild(entryDiv);
+            });
+        }
+
+        function downloadEntries() {
+            let entriesText = '';
+            entries.forEach((entry, index) => {
+                entriesText += `Entry ${index + 1}\n`;
+                entriesText += `Patient Name: ${entry.patientName}\n`;
+                entriesText += `Room Number: ${entry.roomNumber}\n`;
+                entriesText += `Home Situation: ${entry.homeBaseline}\n`;
+                entriesText += `Subjective: ${entry.subjective}\n`;
+                entriesText += `Salient Vitals: ${entry.salientVitals}\n`;
+                entriesText += `Physical Exam: ${entry.physicalExam}\n`;
+                entriesText += `Nursing Input: ${entry.nursingInput}\n`;
+                entriesText += `Suggestions/Early Thoughts: ${entry.suggestions}\n\n`;
+            });
+
+            const blob = new Blob([entriesText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'patient_rounds_entries.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function sendEmail() {
+            let entriesText = '';
+            entries.forEach((entry, index) => {
+                entriesText += `Entry ${index + 1}\n`;
+                entriesText += `Patient Name: ${entry.patientName}\n`;
+                entriesText += `Room Number: ${entry.roomNumber}\n`;
+                entriesText += `Home Situation: ${entry.homeBaseline}\n`;
+                entriesText += `Subjective: ${entry.subjective}\n`;
+                entriesText += `Salient Vitals: ${entry.salientVitals}\n`;
+                entriesText += `Physical Exam: ${entry.physicalExam}\n`;
+                entriesText += `Nursing Input: ${entry.nursingInput}\n`;
+                entriesText += `Suggestions/Early Thoughts: ${entry.suggestions}\n\n`;
+            });
+            const subject = 'Patient Rounds Entries';
+            const body = 'Please find the patient rounds entries attached:\n\n' + entriesText;
+            const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+        }
+
+        function saveEntries() {
+            localStorage.setItem('patientRoundsEntries', JSON.stringify(entries));
+        }
+
+        document.querySelectorAll('textarea').forEach(textarea => {
+            textarea.addEventListener('input', () => {
+                saveEntries();
+            });
+        });
+    </script>
+</body>
+</html>
